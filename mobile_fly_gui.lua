@@ -1,116 +1,112 @@
--- Improved Fly GUI (mobile friendly, sleek design)
-
 local player = game.Players.LocalPlayer
+local guiName = "FlyGuiV3"
+
+-- Remove old GUI if exists
+if player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild(guiName) then
+	player.PlayerGui[guiName]:Destroy()
+end
+
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local cam = workspace.CurrentCamera
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
-local cam = workspace.CurrentCamera
-local RS = game:GetService("RunService")
 
 local flying = false
 local speed = 60
 
--- Remove old GUI
-if player:FindFirstChild("PlayerGui"):FindFirstChild("FlyGuiV3") then
-	player.PlayerGui.FlyGuiV3:Destroy()
-end
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = guiName
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "FlyGuiV3"
-gui.ResetOnSpawn = false
-
--- Helper: add rounded corners
-local function applyUICorner(inst, radius)
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, radius)
-	corner.Parent = inst
-end
-
--- Main frame
+-- Main Frame (Movable)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 280, 0, 180)
-mainFrame.Position = UDim2.new(1, -300, 1, -220)
-mainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-mainFrame.BackgroundTransparency = 0.1
+mainFrame.Size = UDim2.new(0, 320, 0, 180)
+mainFrame.Position = UDim2.new(0.7, 0, 0.7, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 mainFrame.BorderSizePixel = 0
-mainFrame.Parent = gui
-applyUICorner(mainFrame, 14)
+mainFrame.Parent = screenGui
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Active = true -- Needed for drag
 
--- Shadow/glow effect
-local uiStroke = Instance.new("UIStroke")
-uiStroke.Thickness = 2
-uiStroke.Color = Color3.fromRGB(0, 150, 255)
-uiStroke.Parent = mainFrame
-uiStroke.LineJoinMode = Enum.LineJoinMode.Round
+-- UI corner for smooth edges
+local uicorner = Instance.new("UICorner", mainFrame)
+uicorner.CornerRadius = UDim.new(0, 16)
 
--- Title label
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 30)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Fly GUI V3"
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 22
-titleLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-titleLabel.Parent = mainFrame
+-- UI stroke for subtle border glow
+local stroke = Instance.new("UIStroke", mainFrame)
+stroke.Color = Color3.fromRGB(0, 140, 255)
+stroke.Thickness = 2
+stroke.Transparency = 0.3
 
--- Fly toggle button
-local flyBtn = Instance.new("TextButton")
-flyBtn.Size = UDim2.new(0, 240, 0, 45)
-flyBtn.Position = UDim2.new(0, 20, 0, 40)
-flyBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyBtn.Font = Enum.Font.GothamBold
-flyBtn.TextScaled = true
-flyBtn.Text = "Fly: OFF"
-flyBtn.Parent = mainFrame
-applyUICorner(flyBtn, 10)
+-- Title bar for drag
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
 
--- Speed+ button
-local speedUpBtn = Instance.new("TextButton")
-speedUpBtn.Size = UDim2.new(0, 110, 0, 45)
-speedUpBtn.Position = UDim2.new(0, 20, 0, 95)
-speedUpBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-speedUpBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
-speedUpBtn.Font = Enum.Font.GothamBold
-speedUpBtn.TextScaled = true
-speedUpBtn.Text = "Speed + (" .. speed .. ")"
-speedUpBtn.Parent = mainFrame
-applyUICorner(speedUpBtn, 10)
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, -40, 1, 0)
+titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "Fly GUI V3"
+titleText.TextColor3 = Color3.fromRGB(170, 220, 255)
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 18
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
 
--- Speed- button
-local speedDownBtn = Instance.new("TextButton")
-speedDownBtn.Size = UDim2.new(0, 110, 0, 45)
-speedDownBtn.Position = UDim2.new(0, 150, 0, 95)
-speedDownBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-speedDownBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-speedDownBtn.Font = Enum.Font.GothamBold
-speedDownBtn.TextScaled = true
-speedDownBtn.Text = "Speed - (" .. speed .. ")"
-speedDownBtn.Parent = mainFrame
-applyUICorner(speedDownBtn, 10)
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+closeBtn.Text = "✕"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 22
+closeBtn.Parent = titleBar
+closeBtn.AutoButtonColor = true
 
--- Toggle button (show/hide GUI)
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 40, 0, 40)
-toggleBtn.Position = UDim2.new(1, -50, 1, -270)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-toggleBtn.TextColor3 = Color3.fromRGB(0, 150, 255)
-toggleBtn.TextScaled = true
-toggleBtn.Font = Enum.Font.GothamBlack
-toggleBtn.Text = "☰"
-toggleBtn.Parent = gui
-applyUICorner(toggleBtn, 12)
+closeBtn.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
+
+-- Helper function to create buttons
+local function createButton(text, yPos)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 280, 0, 45)
+	btn.Position = UDim2.new(0, 20, 0, yPos)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.BorderSizePixel = 0
+	btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 20
+	btn.AutoButtonColor = true
+	btn.Parent = mainFrame
+	local corner = Instance.new("UICorner", btn)
+	corner.CornerRadius = UDim.new(0, 10)
+	return btn
+end
+
+local flyBtn = createButton("Fly: OFF", 50)
+local speedUpBtn = createButton("Speed + (60)", 100)
+local speedDownBtn = createButton("Speed - (60)", 150)
 
 -- BodyVelocity and BodyGyro for flying
 local bv = Instance.new("BodyVelocity")
+local bg = Instance.new("BodyGyro")
 bv.MaxForce = Vector3.new()
 bv.Velocity = Vector3.new()
-
-local bg = Instance.new("BodyGyro")
 bg.MaxTorque = Vector3.new()
 bg.P = 9e4
 bg.CFrame = hrp.CFrame
 
--- Fly toggle logic
+-- Flying toggle logic
 flyBtn.MouseButton1Click:Connect(function()
 	flying = not flying
 	if flying then
@@ -128,29 +124,60 @@ flyBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Speed controls
+-- Speed change buttons
 speedUpBtn.MouseButton1Click:Connect(function()
-	speed += 10
-	speedUpBtn.Text = "Speed + (" .. speed .. ")"
-	speedDownBtn.Text = "Speed - (" .. speed .. ")"
+	speed = speed + 10
+	speedUpBtn.Text = "Speed + ("..speed..")"
+	speedDownBtn.Text = "Speed - ("..speed..")"
 end)
 
 speedDownBtn.MouseButton1Click:Connect(function()
 	speed = math.max(10, speed - 10)
-	speedUpBtn.Text = "Speed + (" .. speed .. ")"
-	speedDownBtn.Text = "Speed - (" .. speed .. ")"
+	speedUpBtn.Text = "Speed + ("..speed..")"
+	speedDownBtn.Text = "Speed - ("..speed..")"
 end)
 
--- Toggle GUI visibility
-toggleBtn.MouseButton1Click:Connect(function()
-	mainFrame.Visible = not mainFrame.Visible
+-- Drag functionality
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
 end)
 
--- Flying control
-RS.RenderStepped:Connect(function()
+titleBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+-- Update velocity each frame when flying
+RunService.RenderStepped:Connect(function()
 	if flying then
-		local moveDir = cam.CFrame.LookVector
-		bv.Velocity = moveDir * speed
-		bg.CFrame = cam.CFrame
+		local camCFrame = cam.CFrame
+		bv.Velocity = camCFrame.LookVector * speed
+		bg.CFrame = camCFrame
 	end
 end)
